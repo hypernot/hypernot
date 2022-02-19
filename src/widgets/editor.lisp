@@ -2,6 +2,7 @@
   (:use #:cl)
   (:import-from #:uuid)
   (:import-from #:trivial-timers)
+  (:import-from #:reblocks-ui)
   (:import-from #:reblocks/widget
                 #:defwidget)
   (:import-from #:reblocks-text-editor/editor))
@@ -34,24 +35,23 @@
                                 because Hunchentoot's thread will die after each web request.")))
 
 
-(defun make-new-save-timer (widget)
-  (let ((thread (or (save-thread widget)
-                    (bt:make-thread (lambda ()
-                                      (loop do (sleep 60)))
-                                    :name "Thread to save document"))))
-    (setf (save-timer widget)
-          (trivial-timers:make-timer
-           (lambda ()
-             (save-document widget))
-           :name "Save document timer"
-           :thread thread)
-          (save-thread widget)
-          thread)))
-
-
-(defmethod initialize-instance :after ((widget editor) &rest initargs)
-  (declare (ignore initargs))
-  (make-new-save-timer widget))
+(defun ensure-save-timer-created (widget)
+  (let ((thread (save-thread widget)))
+    (when (or (null thread)
+              (not (bt:thread-alive-p thread)))
+      (setf thread
+            (bt:make-thread (lambda ()
+                              (loop do (sleep 60)))
+                            :name "Thread to save document"))
+      
+      (setf (save-timer widget)
+            (trivial-timers:make-timer
+             (lambda ()
+               (save-document widget))
+             :name "Save document timer"
+             :thread thread)
+            (save-thread widget)
+            thread))))
 
 
 (defun get-document-path (widget)
@@ -87,11 +87,16 @@
   (make-new-save-timer widget))
 
 
+(defun schedule-autosave (widget)
+  (log:info "Scheduling document saving in 5 seconds")
+  (ensure-save-timer-created widget)
+  (trivial-timers:schedule-timer (save-timer widget) 5))
+
+
 
 (defmethod reblocks-text-editor/editor:on-document-update ((widget editor))
   (call-next-method)
-  (log:info "Scheduling document saving in 5 seconds")
-  (trivial-timers:schedule-timer (save-timer widget) 5))
+  (schedule-autosave widget))
 
 
 ;; (defmethod reblocks/widget:update :after ((widget editor) &key &allow-other-keys)
@@ -107,7 +112,7 @@
            (update-title (&key text &allow-other-keys)
              (log:info "Updating document title to" text)
              (setf (document-title widget) text)
-             (trivial-timers:schedule-timer (save-timer widget) 5)))
+             (schedule-autosave widget)))
     
     (let* ((action-code (reblocks/actions:make-action #'update-title))
            (update-title-action
