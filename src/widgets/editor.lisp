@@ -2,6 +2,7 @@
   (:use #:cl)
   (:import-from #:uuid)
   (:import-from #:trivial-timers)
+  (:import-from #:scriba)
   (:import-from #:reblocks-ui)
   (:import-from #:reblocks/widget
                 #:defwidget)
@@ -82,9 +83,7 @@
         (document-title widget)
         +default-title+
         (document-id widget)
-        (make-document-id))
-  ;; TODO: temporary, for upgrade
-  (make-new-save-timer widget))
+        (make-document-id)))
 
 
 (defun schedule-autosave (widget)
