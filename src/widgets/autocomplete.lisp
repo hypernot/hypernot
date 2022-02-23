@@ -13,16 +13,23 @@
 (in-package #:hypernot/widgets/autocomplete)
 
 
+(defwidget results (reblocks-ui:ui-widget)
+  ((items :initform nil
+          :accessor results-items)))
+
+
 (defwidget autocomplete (reblocks-ui:ui-widget)
   ((visible :initform nil
-            :accessor visible-p)))
+            :accessor visible-p)
+   (results :initform (make-instance 'results)
+            :reader autocompletion-results)))
 
 
 (defun show (autocomplete)
   (setf (visible-p autocomplete) t)
   (reblocks/widget:update autocomplete)
   (reblocks/response:send-script
-   (format nil "focusInAutocomplete(\"~A\")"
+   (format nil "initAutocompletes(); focusInAutocomplete(\"~A\")"
            (reblocks/widgets/dom:dom-id autocomplete))))
 
 (defun hide (autocomplete)
@@ -35,16 +42,51 @@
   (hide widget))
 
 
+(defgeneric update-results (widget query)
+  (:method ((widget autocomplete) query)
+    (log:info "Updating autocompletion results using \"~A\"" query)
+
+    (setf (results-items (autocompletion-results widget))
+          (execute-query widget query))
+    (reblocks/widget:update (autocompletion-results widget))
+    (values)))
+
+
+(defgeneric execute-query (widget query)
+  (:method ((widget autocomplete) query)
+    (loop for i from 0 upto 4
+          collect (reblocks/widgets/string-widget:make-string-widget
+                   (format nil "~A ~A"
+                           i
+                           query)))))
+
+
 (defmethod reblocks/widget:render ((widget autocomplete))
-  (reblocks-ui/form:with-html-form (:POST (lambda (&key query &allow-other-keys)
-                                            (process-autocomplete-choice widget query))
-                                    :class "popup")
-    (:input :type "text"
-            :name "query"
-            :class "autocomplete-input"
-            :autocomplete "off")
-    (:ul (:li "First")
-         (:li "Second"))))
+  (flet ((on-update (&key query &allow-other-keys)
+           (update-results widget query)))
+    (let ((action-code (reblocks/actions:make-action #'on-update)))
+      (reblocks-ui/form:with-html-form (:POST (lambda (&key query &allow-other-keys)
+                                                (process-autocomplete-choice widget query))
+                                        :class "popup")
+        (:input :type "text"
+                :name "query"
+                :data-action-code action-code
+                :class "autocomplete-input"
+                :autocomplete "off")
+
+        (reblocks/widget:render
+         (autocompletion-results widget))))))
+
+
+(defmethod reblocks/widget:render ((widget results))
+  (let ((items (results-items widget)))
+    (reblocks/html:with-html
+      (cond
+        (items
+         (:ul (loop for item in items
+                    do (:li (reblocks/widget:render item)))))
+        (t
+         (:p "No results."))))))
 
 
 (defmethod reblocks/widget:get-css-classes ((widget autocomplete))
