@@ -6,7 +6,13 @@
   (:import-from #:reblocks-ui)
   (:import-from #:reblocks/widget
                 #:defwidget)
-  (:import-from #:reblocks-text-editor/editor))
+  (:import-from #:reblocks-text-editor/editor)
+  (:import-from #:reblocks/html
+                #:with-html)
+  (:import-from #:parenscript
+                #:chain)
+  (:import-from #:hypernot/widgets/autocomplete
+                #:autocomplete))
 (in-package #:hypernot/widgets/editor)
 
 
@@ -33,7 +39,9 @@
                 :initform nil
                 :accessor save-thread
                 :documentation "We have to use separate thread for running our timers,
-                                because Hunchentoot's thread will die after each web request.")))
+                                because Hunchentoot's thread will die after each web request.")
+   (autocomplete :initform (make-instance 'autocomplete)
+                 :reader autocomplete-widget)))
 
 
 (defun ensure-save-timer-created (widget)
@@ -117,6 +125,9 @@
            (update-title-action
              (format nil "initiateAction(\"~A\", {\"args\": {\"text\": this.innerText}}); return false;"
                      action-code)))
+
+      (reblocks/widget:render
+       (autocomplete-widget widget))
       
       (reblocks/html:with-html
         (:h1 :contenteditable t
@@ -128,6 +139,10 @@
         (:p (:button :class "button"
                      :onclick (reblocks/actions:make-js-action #'reset-text)
                      "New"))))))
+
+
+(defmethod reblocks-text-editor/editor::on-shortcut ((widget editor) key-code)
+  (hypernot/widgets/autocomplete::show (autocomplete-widget widget)))
 
 
 (defun make-css-code ()
