@@ -27,6 +27,8 @@
 
 (defun show (autocomplete)
   (setf (visible-p autocomplete) t)
+  (setf (results-items (autocompletion-results autocomplete))
+        nil)
   (reblocks/widget:update autocomplete)
   (reblocks/response:send-script
    (format nil "initAutocompletes(); focusInAutocomplete(\"~A\")"
@@ -54,11 +56,12 @@
 
 (defgeneric execute-query (widget query)
   (:method ((widget autocomplete) query)
-    (loop for i from 0 upto 4
-          collect (reblocks/widgets/string-widget:make-string-widget
-                   (format nil "~A ~A"
-                           i
-                           query)))))
+    ;; (loop for i from 0 upto 4
+    ;;       collect (reblocks/widgets/string-widget:make-string-widget
+    ;;                (format nil "~A ~A"
+    ;;                        i
+    ;;                        query)))
+    ))
 
 
 (defmethod reblocks/widget:render ((widget autocomplete))
@@ -83,8 +86,16 @@
     (reblocks/html:with-html
       (cond
         (items
-         (:ul (loop for item in items
-                    do (:li (reblocks/widget:render item)))))
+         (:ul
+          (loop for item in items
+                for idx upfrom 0
+                do (:li (:input :type "radio"
+                                :name "result"
+                                :id (format nil "choice-~A" idx)
+                                :onchange "this.form.onsubmit()"
+                                :value idx)
+                        (:label :for (format nil "choice-~A" idx)
+                                (reblocks/widget:render item))))))
         (t
          (:p "No results."))))))
 

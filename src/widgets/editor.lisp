@@ -69,6 +69,20 @@
                    +documents-root+))
 
 
+(defun all-document-titles ()
+  (loop for pathname in (cl-fad:list-directory +documents-root+)
+        for document = (common-doc.format:parse-document (make-instance 'scriba:scriba)
+                                                         pathname)
+        collect (common-doc:title document)))
+
+
+(defmethod hypernot/widgets/autocomplete::execute-query ((widget hypernot/widgets/autocomplete::autocomplete) query)
+  (let ((all-titles (all-document-titles)))
+    (loop for item in all-titles
+          when (str:containsp query item)
+            collect (reblocks/widgets/string-widget:make-string-widget item))))
+
+
 (defun save-document (widget)
   (log:info "Saving document")
   (let ((path (get-document-path widget))

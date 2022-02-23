@@ -37,6 +37,48 @@
                               (@ autocompletion-input value)))
                            250))))
 
+    (defun select-previous-item (autocomplete)
+      (select-next-or-previous-item autocomplete nil))
+
+    (defun select-next-item (autocomplete)
+      (select-next-or-previous-item autocomplete t))
+    
+    (defun select-next-or-previous-item (autocomplete down-p)
+      (chain console
+             (log "Selecting next item" autocomplete))
+      (let ((current-item (chain autocomplete
+                                 (query-selector ".results > ul > li.active"))))
+        (flet ((select (item)
+                 (when item
+                   (chain item
+                          class-list
+                          (add "active"))
+                   (let ((input (chain item
+                                       (query-selector "input"))))
+                     (setf (@ input checked) t))))
+               (deselect (item)
+                 (when item
+                   (chain item
+                          class-list
+                          (remove "active"))
+                   (let ((input (chain item
+                                       (query-selector "input"))))
+                     (setf (@ input checked) nil)))))
+          (cond
+            (current-item
+             (let ((next-item (if down-p
+                                  (@ current-item next-sibling)
+                                  (@ current-item previous-sibling))))
+               (when (and next-item
+                          (equal (@ next-item tag-name)
+                                 "LI"))
+                 (deselect current-item)
+                 (select next-item))))
+            (t
+             (let ((first-item (chain autocomplete
+                                      (query-selector ".results > ul > li"))))
+               (select first-item)))))))
+
     (defun init-autocomplete (autocomplete)
       (chain console
              (log "Initializing autocomplete"
@@ -48,7 +90,24 @@
                                    (lambda (event)
                                      (when (eql (@ event target)
                                                 input)
-                                       (schedule-update event))))))
+                                       (schedule-update event)))))
+        (chain autocomplete
+               (add-event-listener "keydown"
+                                   (lambda (event)
+                                     ;; (chain console (log "KEY CODE" (@ event target)))
+                                     (when (or (eql (@ event target)
+                                                    autocomplete)
+                                               (eql (@ event target)
+                                                    input))
+                                       (let ((key-code (@ event key-code)))
+                                         ;; (chain console (log "KEY CODE" key-code))
+                                         (case key-code
+                                           (38
+                                            (select-previous-item autocomplete)
+                                            (chain event (prevent-default)))
+                                           (40
+                                            (select-next-item autocomplete)
+                                            (chain event (prevent-default))))))))))
       ;; (chain node
       ;;        (add-event-listener
       ;;         "click"

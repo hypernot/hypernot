@@ -36,4 +36,21 @@
        (.popup
         ;; Так же центрируем и плавно увеличиваем
         :transform "translate(-50%, -50%) scale(1)"
-        :transition 0.5s all)))))
+        :transition 0.5s all))
+
+      ((.results > ul)
+       :list-style-type none
+       :margin 0
+       :padding 0)
+      
+      ((.results > ul > li > label)
+       :font-size 1.5rem)
+      
+      ((.results > ul > li > input)
+       :display none)
+      
+      ((.results > ul > li.active)
+       :background-color "#1779ba")
+      
+      ((.results > ul > li.active > label)
+       :color "#fefefe"))))
