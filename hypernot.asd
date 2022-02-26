@@ -2,7 +2,9 @@
          :test #'equal)
 (pushnew "~/projects/lisp/reblocks-ui/" asdf:*central-registry*
          :test #'equal)
-(pushnew "~/projects/lisp/zibaldone/" asdf:*central-registry*
+(pushnew "~/projects/lisp/reblocks-typeahead/" asdf:*central-registry*
+         :test #'equal)
+(pushnew "~/projects/lisp/reblocks-text-editor/" asdf:*central-registry*
          :test #'equal)
 (pushnew "~/projects/lisp/scriba/" asdf:*central-registry*
          :test #'equal)

@@ -1,6 +1,7 @@
 (uiop:define-package #:hypernot/widgets/editor
   (:use #:cl)
   (:import-from #:uuid)
+  (:import-from #:reblocks-ui/popup)
   (:import-from #:trivial-timers)
   (:import-from #:scriba)
   (:import-from #:reblocks-ui)
@@ -11,8 +12,8 @@
                 #:with-html)
   (:import-from #:parenscript
                 #:chain)
-  (:import-from #:hypernot/widgets/autocomplete
-                #:autocomplete))
+  (:import-from #:hypernot/widgets/commands
+                #:commands-widget))
 (in-package #:hypernot/widgets/editor)
 
 
@@ -40,8 +41,15 @@
                 :accessor save-thread
                 :documentation "We have to use separate thread for running our timers,
                                 because Hunchentoot's thread will die after each web request.")
-   (autocomplete :initform (make-instance 'autocomplete)
-                 :reader autocomplete-widget)))
+   (commands-widget :initform nil
+                    :reader commands-widget)))
+
+
+(defmethod initialize-instance :after ((widget editor) &rest initargs)
+  (declare (ignore initargs))
+  (setf (slot-value widget 'commands-widget)
+        (make-instance 'commands-widget
+                       :editor widget)))
 
 
 (defun ensure-save-timer-created (widget)
@@ -74,13 +82,6 @@
         for document = (common-doc.format:parse-document (make-instance 'scriba:scriba)
                                                          pathname)
         collect (common-doc:title document)))
-
-
-(defmethod hypernot/widgets/autocomplete::execute-query ((widget hypernot/widgets/autocomplete::autocomplete) query)
-  (let ((all-titles (all-document-titles)))
-    (loop for item in all-titles
-          when (str:containsp query item)
-            collect (reblocks/widgets/string-widget:make-string-widget item))))
 
 
 (defun save-document (widget)
@@ -141,7 +142,7 @@
                      action-code)))
 
       (reblocks/widget:render
-       (autocomplete-widget widget))
+       (commands-widget widget))
       
       (reblocks/html:with-html
         (:h1 :contenteditable t
@@ -156,7 +157,7 @@
 
 
 (defmethod reblocks-text-editor/editor::on-shortcut ((widget editor) key-code)
-  (hypernot/widgets/autocomplete::show (autocomplete-widget widget)))
+  (reblocks-ui/popup:show-popup (commands-widget widget)))
 
 
 (defun make-css-code ()
