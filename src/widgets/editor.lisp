@@ -7,6 +7,7 @@
   (:import-from #:reblocks-ui)
   (:import-from #:reblocks/widget
                 #:defwidget)
+  (:import-from #:hypernot/store)
   (:import-from #:reblocks-text-editor/editor)
   (:import-from #:reblocks/html
                 #:with-html)
@@ -18,8 +19,6 @@
 
 
 (defparameter +default-title+ "Untitled")
-
-(defparameter +documents-root+ #P"~/Documents/hypernot/")
 
 
 (defun make-document-id ()
@@ -74,14 +73,7 @@
 (defun get-document-path (widget)
   (merge-pathnames (format nil "~A.scriba"
                            (document-id widget))
-                   +documents-root+))
-
-
-(defun all-document-titles ()
-  (loop for pathname in (cl-fad:list-directory +documents-root+)
-        for document = (common-doc.format:parse-document (make-instance 'scriba:scriba)
-                                                         pathname)
-        collect (common-doc:title document)))
+                   hypernot/store::+documents-root+))
 
 
 (defun save-document (widget)
@@ -156,8 +148,10 @@
                      "New"))))))
 
 
-(defmethod reblocks-text-editor/editor::on-shortcut ((widget editor) key-code)
-  (reblocks-ui/popup:show-popup (commands-widget widget)))
+(defmethod reblocks-text-editor/editor::on-shortcut ((widget editor) key-code node cursor-position)
+  (hypernot/widgets/commands::show-commands (commands-widget widget)
+                                            node
+                                            cursor-position))
 
 
 (defun make-css-code ()

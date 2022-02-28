@@ -1,5 +1,6 @@
 (uiop:define-package #:hypernot/widgets/commands
   (:use #:cl)
+  (:import-from #:hypernot/store)
   (:import-from #:reblocks/widget
                 #:defwidget)
   (:import-from #:reblocks-ui/popup
@@ -15,8 +16,9 @@
 
 
 (defwidget command-widget ()
-  ((editor :initarg :editor
-           :reader editor)))
+  ((commands-widget :initarg :commands-widget
+                    :type commands-widget
+                    :reader commands-widget)))
 
 
 (defwidget found-document-widget (command-widget)
@@ -25,6 +27,7 @@
 
 (defwidget commands-typeahead (typeahead-widget)
   ((parent :initform nil
+           :type (or null commands-widget)
            :reader parent)
    (editor :initarg :editor
            :reader editor)))
@@ -34,7 +37,11 @@
   ((typeahead :initform (make-instance 'commands-typeahead)
               :reader typeahead)
    (editor :initarg :editor
-           :reader editor)))
+           :reader editor)
+   (current-node :initform nil
+                 :accessor current-node)
+   (current-cursor-position :initform nil
+                            :accessor current-cursor-position)))
 
 
 (defmethod initialize-instance :after ((widget commands-widget) &rest initargs)
@@ -57,6 +64,13 @@
   (focus-in (typeahead widget)))
 
 
+(defun show-commands (widget node cursor-position)
+  (check-type widget commands-widget)
+  (setf (current-node widget) node
+        (current-cursor-position widget) cursor-position)
+  (reblocks-ui/popup:show-popup widget))
+
+
 (defmethod render-popup-content ((widget commands-widget))
   (reblocks/widget:render (typeahead widget)))
 
@@ -64,23 +78,40 @@
 (defmethod print-object ((widget found-document-widget) stream)
   (print-unreadable-object (widget stream :type t)
     (format stream "~S"
-            (document widget))))
+            (common-doc:title (document widget)))))
 
 (defmethod reblocks/widget:render ((widget found-document-widget))
   (reblocks/html:with-html
     (:p (format nil "Note ~S"
-                (document widget)))))
+                (common-doc:title (document widget))))))
 
 
 (defmethod execute-query ((widget commands-typeahead) query)
-  (let ((all-titles (uiop:symbol-call "HYPERNOT/WIDGETS/EDITOR"
-                                      "ALL-DOCUMENT-TITLES")))
-    (loop for item in all-titles
-          when (str:containsp query item)
-            collect (make-instance 'found-document-widget
-                                   :editor (editor widget)
-                                   :document item))))
+  (loop for document in (hypernot/store::search-notes query)
+        collect (make-instance 'found-document-widget
+                               :commands-widget (parent widget)
+                               :document document)))
 
 
 (defmethod process-typeahead-choice :after ((widget commands-typeahead) query selected-item-idx)
   (hide-popup (parent widget)))
+
+
+(defmethod reblocks-typeahead::on-select ((widget found-document-widget))
+  (let* ((commands-widget (commands-widget widget))
+         (editor (editor commands-widget))
+         (current-document (reblocks-text-editor/editor::document editor))
+         (document-to-reference (document widget))
+         (title (common-doc:title document-to-reference))
+         (after-node (current-node commands-widget))
+         (definition (format nil
+                             "~@[~A~]~@[#~A~]"
+                             (common-doc:reference document-to-reference)
+                             ;; section inside the document
+                             nil))
+         (new-node (commondoc-markdown:make-markdown-link
+                    (list (common-doc:make-text title))
+                    :definition definition)))
+    (reblocks-text-editor/editor::insert-node current-document
+                                              new-node
+                                              after-node)))
