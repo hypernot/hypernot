@@ -166,3 +166,19 @@
 (defmethod reblocks/dependencies:get-dependencies ((widget editor))
   (list* (make-css-code)
          (call-next-method)))
+
+
+
+(defmethod reblocks-text-editor/editor::process-link ((widget editor) &key href &allow-other-keys)
+  (cond
+    ((str:starts-with-p "internal:" href)
+     (let ((document-id (second (str:split #\: href))))
+       (multiple-value-bind (document title id)
+           (hypernot/store::load-document document-id)
+         (setf (reblocks-text-editor/editor::document widget)
+               document
+               (document-title widget)
+               title
+               (document-id widget)
+               id))
+       (reblocks/widget:update widget)))))
