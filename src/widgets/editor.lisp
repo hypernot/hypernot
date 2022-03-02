@@ -14,7 +14,9 @@
   (:import-from #:parenscript
                 #:chain)
   (:import-from #:hypernot/widgets/commands
-                #:commands-widget))
+                #:commands-widget)
+  (:import-from #:hypernot/widgets/search
+                #:search-typeahead))
 (in-package #:hypernot/widgets/editor)
 
 
@@ -40,6 +42,8 @@
                 :accessor save-thread
                 :documentation "We have to use separate thread for running our timers,
                                 because Hunchentoot's thread will die after each web request.")
+   (search-widget :initform nil
+                  :reader search-widget)
    (commands-widget :initform nil
                     :reader commands-widget)))
 
@@ -48,6 +52,9 @@
   (declare (ignore initargs))
   (setf (slot-value widget 'commands-widget)
         (make-instance 'commands-widget
+                       :editor widget))
+  (setf (slot-value widget 'search-widget)
+        (make-instance 'search-typeahead
                        :editor widget)))
 
 
@@ -136,11 +143,15 @@
       (reblocks/widget:render
        (commands-widget widget))
       
+      (reblocks/widget:render
+       (search-widget widget))
+      
       (reblocks/html:with-html
         (:h1 :contenteditable t
              :style "outline: none"
              :onblur update-title-action
              (document-title widget))
+        (:h5 (document-id widget))
         (call-next-method)
 
         (:p (:button :class "button"
