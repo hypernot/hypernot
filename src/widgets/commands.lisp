@@ -104,14 +104,13 @@
          (document-to-reference (document widget))
          (title (common-doc:title document-to-reference))
          (after-node (current-node commands-widget))
-         (definition (format nil
-                             "~@[~A~]~@[#~A~]"
-                             (common-doc:reference document-to-reference)
-                             ;; section inside the document
-                             nil))
-         (new-node (commondoc-markdown:make-markdown-link
-                    (list (common-doc:make-text title))
-                    :definition definition)))
+         (uri (format nil
+                      "internal:~@[~A~]~@[#~A~]"
+                      (common-doc:reference document-to-reference)
+                      ;; section inside the document
+                      nil))
+         (new-node (common-doc:make-web-link uri
+                                             (common-doc:make-text title))))
     (reblocks-text-editor/editor::insert-node current-document
                                               new-node
                                               after-node)))

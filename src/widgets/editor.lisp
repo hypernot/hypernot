@@ -183,7 +183,12 @@
 (defmethod reblocks-text-editor/editor::process-link ((widget editor) &key href &allow-other-keys)
   (cond
     ((str:starts-with-p "internal:" href)
-     (let ((document-id (second (str:split #\: href))))
+     (let* ((uri (quri:uri href))
+            (document-id (quri:uri-path uri)))
+       (unless document-id
+         (error "Document with URI ~A not found."
+                href))
+       
        (multiple-value-bind (document title id)
            (hypernot/store::load-document document-id)
          (setf (reblocks-text-editor/editor::document widget)
