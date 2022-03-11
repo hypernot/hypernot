@@ -34,12 +34,16 @@
 
 (defun search-notes (query &key (limit 10))
   (loop for pathname in (cl-fad:list-directory +documents-root+)
-        for document = (load-document pathname)
-        for title = (common-doc:title document) 
+        for document = (when (string-equal (pathname-type pathname)
+                                           "scriba")
+                         (load-document pathname))
+        for title = (when document
+                      (common-doc:title document)) 
         while (< (length results)
                  limit)
-        when (str:containsp (string-downcase query)
-                            (string-downcase title))
+        when (and title
+                  (str:containsp (string-downcase query)
+                                 (string-downcase title)))
           do (setf (common-doc:reference document)
                    (pathname-name pathname))
           and
