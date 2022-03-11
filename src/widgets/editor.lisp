@@ -12,7 +12,9 @@
   (:import-from #:reblocks/html
                 #:with-html)
   (:import-from #:parenscript
-                #:chain)
+                #:chain
+                #:@
+                #:regex)
   (:import-from #:hypernot/widgets/commands
                 #:commands-widget)
   (:import-from #:hypernot/widgets/search
@@ -174,13 +176,56 @@
        :width 80%))))
 
 
+(defun make-js-code ()
+  (reblocks-parenscript:make-dependency
+    (progn
+      (defun initialize-document-title ()
+        (chain this
+               (add-event-listener
+                "keypress"
+                (lambda (event)
+                  (when (= (@ event key-code)
+                           13)
+                    (chain event
+                           (prevent-default))))))
+        (chain this
+               (add-event-listener
+                "paste"
+                (lambda (event)
+                  (let* ((text (chain (or (@ event clipboard-data)
+                                          (@ window clipboard-data))
+                                      (get-data "text")
+                                      (replace (regex "/\\n/g")
+                                               " "))))
+                    (let ((sel (chain window
+                                      (get-selection))))
+                      (when (> (@ sel range-count) 0)
+                        (chain sel
+                               (delete-from-document))
+                        (chain sel
+                               (get-range-at 0)
+                               (insert-node
+                                (chain document
+                                       (create-text-node text)))))))
+                  (chain event
+                         (prevent-default))))))
+
+      (chain (j-query document)
+             (ready (lambda ()
+                      (chain document
+                             (query-selector-all ".editor .document-title")
+                             (for-each initialize-document-title))))))))
+
+
 (defmethod reblocks/dependencies:get-dependencies ((widget editor))
   (list* (make-css-code)
+         (make-js-code)
          (call-next-method)))
 
 
 
 (defmethod reblocks-text-editor/editor::process-link ((widget editor) &key href &allow-other-keys)
+  (log:debug "Opening URL" href)
   (cond
     ((str:starts-with-p "internal:" href)
      (let* ((uri (quri:uri href))
