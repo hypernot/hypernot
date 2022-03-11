@@ -181,15 +181,17 @@
 (defun make-js-code ()
   (reblocks-parenscript:make-dependency
     (progn
-      (defun initialize-document-title ()
+      (defun initialize-document-title (title-node)
         (chain this
                (add-event-listener
-                "keypress"
+                "keydown"
                 (lambda (event)
-                  (when (= (@ event key-code)
-                           13)
-                    (chain event
-                           (prevent-default))))))
+                  (when (= (@ event target)
+                           title-node)
+                    (when (= (@ event key-code)
+                             13)
+                      (chain event
+                             (prevent-default)))))))
         (chain this
                (add-event-listener
                 "paste"
