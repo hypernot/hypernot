@@ -131,7 +131,21 @@
   (labels ((reset-text (&rest args)
              (declare (ignore args))
              (reset widget)
-             (reblocks/widget:update widget))
+             (reblocks/widget:update widget)
+             (select-title widget))
+           (select-title (widget)
+             ;; We need this JS code to focus on a new note's title
+             ;; and prepare it for entering a new text:
+             (let ((selector (format nil "#~A .document-title"
+                                     (reblocks/widgets/dom:dom-id widget))))
+               (reblocks/response:send-script
+                `(let ((title (chain document
+                                     (query-selector ,selector))))
+                   (chain title
+                          (focus))
+                   (chain window
+                          (get-selection)
+                          (select-all-children title))))))
            (update-title (&key text &allow-other-keys)
              (log:info "Updating document title to" text)
              (setf (document-title widget) text)
