@@ -3,6 +3,7 @@
   (:import-from #:alexandria
                 #:length=)
   (:import-from #:reblocks-text-editor/document/editable)
+  (:import-from #:reblocks-text-editor/document/ops)
   (:import-from #:common-doc)
   (:import-from #:serapeum
                 #:take))
@@ -12,26 +13,31 @@
 (defparameter +documents-root+ #P"~/Documents/hypernot/")
 
 
-(defun load-document (id)
-  (let* ((pathname (uiop:merge-pathnames* (format nil "~A.scriba" id)
-                                          +documents-root+))
+(defun load-document (id-or-pathname)
+  (let* ((pathname (etypecase id-or-pathname
+                     (pathname id-or-pathname)
+                     (string (uiop:merge-pathnames* (format nil "~A.scriba" id-or-pathname)
+                                                    +documents-root+))))
+         (id (etypecase id-or-pathname
+               (pathname (pathname-name id-or-pathname))
+               (string id-or-pathname)))
          (format (make-instance 'scriba:scriba))
-         (full-doc (common-doc.format:parse-document format pathname))
+         (full-doc (reblocks-text-editor/document/ops::add-missing-paragraphs
+                    (common-doc.format:parse-document format pathname)))
          (editable-doc (make-instance 'reblocks-text-editor/document/editable::editable-document
+                                      :title (common-doc:title full-doc)
+                                      :reference id
                                       :children (common-doc:children full-doc))))
     (reblocks-text-editor/document/ops::add-reference-ids editable-doc)
-    (values editable-doc
-            (common-doc:title full-doc)
-            id)))
+    (values editable-doc)))
 
 
 (defun search-notes (query &key (limit 10))
-  (loop with format = (make-instance 'scriba:scriba)
-        for pathname in (cl-fad:list-directory +documents-root+)
-        for document = (common-doc.format:parse-document format
-                                                         pathname)
-        for idx upto limit
-        for title = (common-doc:title document)
+  (loop for pathname in (cl-fad:list-directory +documents-root+)
+        for document = (load-document pathname)
+        for title = (common-doc:title document) 
+        while (< (length results)
+                 limit)
         when (str:containsp (string-downcase query)
                             (string-downcase title))
           do (setf (common-doc:reference document)

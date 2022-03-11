@@ -150,10 +150,12 @@
       
       (reblocks/html:with-html
         (:h1 :contenteditable t
+             :class "document-title"
              :style "outline: none"
              :onblur update-title-action
+             :title (format nil "~A.scriba"
+                            (document-id widget))
              (document-title widget))
-        (:h5 (document-id widget))
         (call-next-method)
 
         (:p (:button :class "button"
@@ -234,12 +236,13 @@
          (error "Document with URI ~A not found."
                 href))
        
-       (multiple-value-bind (document title id)
-           (hypernot/store::load-document document-id)
+       (let ((document (hypernot/store::load-document document-id)))
          (setf (reblocks-text-editor/editor::document widget)
                document
+               ;; TODO: use original title and reference from the document
+               ;; when editing the title and saving the document.
                (document-title widget)
-               title
+               (common-doc:title document)
                (document-id widget)
-               id))
+               (common-doc:reference document)))
        (reblocks/widget:update widget)))))
