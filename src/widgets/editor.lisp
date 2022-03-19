@@ -251,6 +251,9 @@
        (unless document-id
          (error "Document with URI ~A not found."
                 href))
+
+       ;; First of all, we need to save the current document
+       (save-document widget)
        
        (let ((document (hypernot/store::load-document document-id)))
          (setf (reblocks-text-editor/editor::document widget)
