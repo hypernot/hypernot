@@ -1,3 +1,7 @@
+(pushnew "~/projects/lisp/cffi/" asdf:*central-registry*
+         :test #'equal)
+(pushnew "~/projects/lisp/cl-plus-ssl/" asdf:*central-registry*
+         :test #'equal)
 (pushnew "~/projects/lisp/reblocks/" asdf:*central-registry*
          :test #'equal)
 (pushnew "~/projects/lisp/reblocks-ui/" asdf:*central-registry*

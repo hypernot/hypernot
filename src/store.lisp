@@ -22,8 +22,9 @@
                (pathname (pathname-name id-or-pathname))
                (string id-or-pathname)))
          (format (make-instance 'scriba:scriba))
-         (full-doc (reblocks-text-editor/document/ops::add-missing-paragraphs
-                    (common-doc.format:parse-document format pathname)))
+         (full-doc (reblocks-text-editor/blocks/code::normalize
+                    (reblocks-text-editor/document/ops::add-missing-paragraphs
+                     (common-doc.format:parse-document format pathname))))
          (editable-doc (make-instance 'reblocks-text-editor/document/editable::editable-document
                                       :title (common-doc:title full-doc)
                                       :reference id
