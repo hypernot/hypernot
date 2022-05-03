@@ -4,6 +4,7 @@
                 #:length=)
   (:import-from #:reblocks-text-editor/document/editable)
   (:import-from #:reblocks-text-editor/document/ops)
+  (:import-from #:reblocks-text-editor/blocks/code)
   (:import-from #:common-doc)
   (:import-from #:serapeum
                 #:take))

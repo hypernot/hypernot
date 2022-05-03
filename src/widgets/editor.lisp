@@ -29,6 +29,12 @@
   (uuid:print-bytes nil (uuid:make-v4-uuid)))
 
 
+(defwidget debug-widget ()
+  ((editor :initform nil
+           :initarg :editor
+           :reader editor)))
+
+
 (defwidget editor (reblocks-ui:ui-widget reblocks-text-editor/editor::editor)
   ((id :type string
        :initform (make-document-id)
@@ -47,7 +53,9 @@
    (search-widget :initform nil
                   :reader search-widget)
    (commands-widget :initform nil
-                    :reader commands-widget)))
+                    :reader commands-widget)
+   (debug-widget :initform nil
+                 :reader debug-widget)))
 
 
 (defmethod initialize-instance :after ((widget editor) &rest initargs)
@@ -57,6 +65,9 @@
                        :editor widget))
   (setf (slot-value widget 'search-widget)
         (make-instance 'search-typeahead
+                       :editor widget))
+  (setf (slot-value widget 'debug-widget)
+        (make-instance 'debug-widget
                        :editor widget)))
 
 
@@ -90,7 +101,7 @@
   (let ((path (get-document-path widget))
         ;; We need this to prevent Markdown markup leaking to the
         ;; document on disk.
-        (reblocks-text-editor/html::*render-markup* nil)
+        (reblocks-text-editor/html::*hide-markup-nodes* t)
         (document (common-doc:make-document (document-title widget)
                                             :children (reblocks-text-editor/editor::document widget))))
     (ensure-directories-exist path)
@@ -119,7 +130,8 @@
 
 (defmethod reblocks-text-editor/editor:on-document-update ((widget editor))
   (call-next-method)
-  (schedule-autosave widget))
+  (schedule-autosave widget)
+  (reblocks/widget:update (debug-widget widget)))
 
 
 ;; (defmethod reblocks/widget:update :after ((widget editor) &key &allow-other-keys)
@@ -161,7 +173,6 @@
       
       (reblocks/widget:render
        (search-widget widget))
-      
       (reblocks/html:with-html
         (:h1 :contenteditable t
              :class "document-title"
@@ -174,7 +185,64 @@
 
         (:p (:button :class "button"
                      :onclick (reblocks/actions:make-js-action #'reset-text)
-                     "New"))))))
+                     "New")))
+
+      ;; TODO: remove after lisp restart
+      ;; (unless (debug-widget widget)
+      ;;   (setf (slot-value widget 'debug-widget)
+      ;;         (make-instance 'debug-widget
+      ;;                        :editor widget)))
+      
+      (reblocks/widget:render
+       (debug-widget widget)))))
+
+
+(defun make-zero-spaces-visible (text)
+  (str:replace-all reblocks-text-editor/utils/text::+zero-width-space+
+                   "&ZeroWidthSpace;"
+                   text))
+
+
+(defgeneric render-common-doc-tree (node)
+  (:method ((node common-doc:content-node))
+    (with-html
+      (:dl
+       (:dt (format nil "~S (~A)"
+                    (class-name (class-of node))
+                    (common-doc:reference node)))
+       (:dd (mapc #'render-common-doc-tree
+                  (common-doc:children node))))))
+  (:method ((node common-doc:text-node))
+    (with-html
+      (:p (:b (format nil "TEXT (~A): "
+                      (common-doc:reference node)))
+          (:span (format nil "\"~A\""
+                         (make-zero-spaces-visible
+                          (common-doc:text node)))))))
+  (:method ((node common-doc:image))
+    (with-html
+      (:p (:b (format nil "IMAGE (~A): "
+                      (common-doc:reference node)))
+          (common-doc:source node)))))
+
+
+(defmethod reblocks/widget:render ((widget debug-widget))
+  (let* ((document (reblocks-text-editor/editor::document
+                    (editor widget)))
+         (left (reblocks-text-editor/document/editable::text-before-caret document))
+         (right (reblocks-text-editor/document/editable::text-after-caret document))
+         (line (concatenate 'string
+                            left
+                            "❙"
+                            right)))
+    (reblocks/html:with-html
+      (:label "Text around caret:")
+      (:div :class "inner"
+            (:pre (:code line)))
+      
+      (:label "Document tree:")
+      (:div :class "document-tree"
+            (render-common-doc-tree document)))))
 
 
 (defmethod reblocks-text-editor/editor::on-shortcut ((widget editor) key-code node cursor-position)
@@ -186,6 +254,25 @@
 (defun make-css-code ()
   (reblocks-lass:make-dependency
     '(body
+      (.document-tree
+       (dd
+        :padding-left 2rem))
+      (.debug-widget
+       (.inner
+        :border 1px solid "#555"
+        :margin-left -0.5em
+        :padding 0.5em
+        (p
+         :margin 0
+         (code
+          :white-space pre))
+        (.caret
+         :width 0.3em
+         :height 0.8em
+         :background-color "#777"
+         :display inline-block
+         :margin-left 0.1em
+         :margin-right 0.1em)))
       (.editor
        :margin-left auto
        :margin-right auto

@@ -1,3 +1,9 @@
+(pushnew "~/projects/lisp/print-licenses/" asdf:*central-registry*
+         :test #'equal)
+(pushnew "~/projects/lisp/reblocks-parenscript/" asdf:*central-registry*
+         :test #'equal)
+(pushnew "~/projects/lisp/cl-hamcrest/" asdf:*central-registry*
+         :test #'equal)
 (pushnew "~/projects/lisp/cffi/" asdf:*central-registry*
          :test #'equal)
 (pushnew "~/projects/lisp/cl-plus-ssl/" asdf:*central-registry*
