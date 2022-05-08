@@ -204,6 +204,14 @@
 
 
 (defgeneric render-common-doc-tree (node)
+  (:method ((node common-doc:base-list))
+    (with-html
+      (:dl
+       (:dt (format nil "~S (~A)"
+                    (class-name (class-of node))
+                    (common-doc:reference node)))
+       (:dd (mapc #'render-common-doc-tree
+                  (common-doc:children node))))))
   (:method ((node common-doc:content-node))
     (with-html
       (:dl
@@ -213,12 +221,15 @@
        (:dd (mapc #'render-common-doc-tree
                   (common-doc:children node))))))
   (:method ((node common-doc:text-node))
-    (with-html
-      (:p (:b (format nil "TEXT (~A): "
-                      (common-doc:reference node)))
-          (:span (format nil "\"~A\""
-                         (make-zero-spaces-visible
-                          (common-doc:text node)))))))
+    (let ((text (make-zero-spaces-visible
+                 (common-doc:text node))))
+      (with-html
+        (:p (:b (format nil "TEXT (~A): "
+                        (common-doc:reference node)))
+            (if (alexandria:length= 0 text)
+                (:code "<empty>")
+                (:code (format nil "\"~A\""
+                               text)))))))
   (:method ((node common-doc:image))
     (with-html
       (:p (:b (format nil "IMAGE (~A): "
