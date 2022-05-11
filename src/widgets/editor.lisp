@@ -212,6 +212,20 @@
                     (common-doc:reference node)))
        (:dd (mapc #'render-common-doc-tree
                   (common-doc:children node))))))
+  (:method ((node reblocks-text-editor/blocks/progress::progress))
+    (with-html
+      (:span
+       (format nil "~S (~A)"
+               (class-name (class-of node))
+               (common-doc:reference node)))))
+  (:method ((node reblocks-text-editor/blocks/caret::caret))
+    (with-html
+      (:dl
+       (:dt (format nil "~S (pos: ~A)"
+                    (class-name (class-of node))
+                    (reblocks-text-editor/blocks/caret::caret-position node)))
+       (:dd (render-common-doc-tree
+             (reblocks-text-editor/blocks/caret::child node))))))
   (:method ((node common-doc:content-node))
     (with-html
       (:dl

@@ -5,6 +5,7 @@
   (:import-from #:reblocks-text-editor/document/editable)
   (:import-from #:reblocks-text-editor/document/ops)
   (:import-from #:reblocks-text-editor/blocks/code)
+  (:import-from #:reblocks-text-editor/html)
   (:import-from #:common-doc)
   (:import-from #:serapeum
                 #:take))
@@ -30,6 +31,7 @@
                                       :title (common-doc:title full-doc)
                                       :reference id
                                       :children (common-doc:children full-doc))))
+    (reblocks-text-editor/html::ensure-markup-nodes full-doc)
     (reblocks-text-editor/document/ops::add-reference-ids editable-doc)
     (values editable-doc)))
 
